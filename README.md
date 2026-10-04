@@ -95,3 +95,10 @@ Details: [`docs/KONZEPT.md`](docs/KONZEPT.md).
 - [`skyrc-mc-rs`](https://github.com/rssdev10/skyrc-mc-rs) (MIT) – Rust-Implementierung des MC5000-Protokolls
 - [`skyrc-mc3000`](https://github.com/kolinger/skyrc-mc3000) (GPL-3.0) – Python-BLE-Monitor
 - [`skyrc.com/MC5000`](https://www.skyrc.com/MC5000) – offizielle Produktseite
+
+## Lizenz
+
+Copyright (c) 2026 junk495
+
+Lizenziert unter der [PolyForm Noncommercial License 1.0.0](LICENSE) – freie, nicht-kommerzielle Nutzung.
+
