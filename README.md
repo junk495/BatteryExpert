@@ -7,14 +7,16 @@ Android-App zur Verwaltung von Akku-Daten und zur direkten Steuerung des
 
 ## Funktionen
 
-- **Akku-Datenbank:** Akkus (Marke, Modell, Chemie, Kapazität, Größe, Innenwiderstand …)
-  inkl. Lade-/Entladeprofilen und Messreihen lokal verwalten (Room/SQLite).
-- **Live-Monitoring:** Spannung, Strom, Temperatur, Kapazität, Zeit und Innenwiderstand
-  der 4 Slots in Echtzeit anzeigen (inkl. Spannungsverlauf als Diagramm).
-- **Steuerung:** Lade-/Entladeparameter direkt an den MC5000 senden
-  (Konfig `0x94` + Start/Stopp `0x93`).
-- **KI-Recherche:** Akku-Daten per Gemini recherchieren und strukturiert in die App übernehmen.
-- **Import/Export:** Batterien (inkl. Profile + Messungen) als JSON sichern/austauschen.
+- **Zelltypen-Datenbank:** Seriendaten (Datenblatt) je Zelltyp verwalten – Hersteller, Modell,
+  Chemie, Kapazität, Lade-/Entladeparameter, NiMH-Delta-Peak, … (Room/SQLite).
+- **Zellen-Bestand:** einzelne Zellen einem Zelltyp zuordnen (Herkunft, Status, Lagerort).
+- **Live-Monitoring:** Spannung, Strom, Kapazität, Zeit und Innenwiderstand der 4 Slots
+  in Echtzeit (inkl. Spannungs-/Stromverlauf als Diagramm).
+- **Zell-Bewertung (Test-Tab):** Innenwiderstand prüfen + Kapazitäts-/SOH-Test
+  (Schnell- oder genauer Test) → Ampel (ok/beobachten/aussortieren).
+- **Steuerung:** Lade-/Entladeparameter direkt an den MC5000 senden (`0x94` + `0x93`).
+- **KI-Recherche:** Zelltyp-Daten per Gemini **oder DeepSeek** recherchieren und strukturiert übernehmen.
+- **Import/Export:** Daten als JSON sichern/austauschen (optional CSV für Testergebnisse).
 
 ## Technik
 
@@ -25,7 +27,7 @@ Android-App zur Verwaltung von Akku-Daten und zur direkten Steuerung des
 | Architektur  | MVVM + Repository + Flow              |
 | Datenbank    | Room (SQLite) + KSP                   |
 | BLE          | nativ `android.bluetooth.le`          |
-| KI           | Gemini API (`generativeai`)           |
+| KI           | Gemini API + DeepSeek API              |
 | Diagramme    | Vico                                  |
 | JSON         | Gson                                  |
 
@@ -35,16 +37,14 @@ Android-App zur Verwaltung von Akku-Daten und zur direkten Steuerung des
 
 - Android Studio (aktuelle Version)
 - JDK (Android Studio bringt ein JBR mit)
-- Für die KI-Recherche: ein Gemini-API-Key
+- Für die KI-Recherche: ein API-Key (Gemini oder DeepSeek) – Eingabe in der App (Einstellungen)
 
 ## Einrichtung & Build
 
 1. Projekt in Android Studio öffnen.
-2. (Optional) Für die KI-Recherche in `local.properties` eintragen:
-   ```properties
-   GEMINI_API_KEY=DEIN_SCHLUESSEL
-   ```
-3. Auf ein BLE-fähiges Android-Gerät (min. Android 8.0 / API 26) installieren.
+2. Auf ein BLE-fähiges Android-Gerät (min. Android 8.0 / API 26) installieren.
+3. KI-Key in den Einstellungen hinterlegen (Gemini oder DeepSeek).
+   (Alternativ als Fallback: `GEMINI_API_KEY` in `local.properties`.)
 
 Kommandozeile (Windows):
 
@@ -59,18 +59,22 @@ $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
 ```
 app/src/main/java/com/batteryexpert/
   data/
-    ble/         Mc5000BleManager, ProtocolCodec, BleDevice, SlotStatus
-    db/          Room-Entities, DAOs, AppDatabase
-    repository/  BatteryRepository, BleRepository, AiRepository, …
+    ble/          Mc5000BleManager, ProtocolCodec, BleDevice, SlotStatus
+    db/           Room-Entities (CellType, Battery, TestResult, …), DAOs, AppDatabase
+    assessment/   AssessmentLogic (IR/SOH/Empfehlung)
+    repository/   Battery-, Ble-, Ai-, ExportImport-, Measurement-, Test-Repository
+    ApiKeyStore.kt (Gemini-/DeepSeek-Key)
   ui/
-    screens/     BatteryList, BatteryDetail, BatteryEdit, Monitor,
-                 ConfigEditor, AiResearch, Settings
-    viewmodels/  …
+    screens/      BatteryList, BatteryDetail, BatteryEdit, Monitor,
+                  ConfigEditor, AiResearch, Settings
+    test/         TestScreen (Zell-Bewertung)
+    viewmodels/   …
     theme/
   MainActivity.kt
 docs/
-  KONZEPT.md     Konzept & Architektur
-  PROMPTS.md     Prompts für die Android-Studio-KI
+  KONZEPT.md       Konzept & Architektur
+  TESTPROTOKOLL.md Messprotokoll (Schnell-/genauer Test)
+  PROMPTS.md       Prompts für die Android-Studio-KI
 ```
 
 ## BLE-Protokoll (MC5000)
@@ -88,7 +92,7 @@ Details: [`docs/KONZEPT.md`](docs/KONZEPT.md).
 ## Tests
 
 `.\gradlew.bat testDebugUnitTest` – u. a. `ProtocolCodecTest`, `AppDatabaseTest`,
-`ExportImportRepositoryTest`, `ViewModelsTest`.
+`AssessmentLogicTest`, `ExportImportRepositoryTest`, `ViewModelsTest`.
 
 ## Referenzen
 

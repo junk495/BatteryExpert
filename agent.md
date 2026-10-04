@@ -5,30 +5,34 @@ SkyRC MC5000 per Bluetooth Low Energy (BLE).
 
 ## Zweck
 1. Akku-Daten (Spezifikationen, Lade-/Entladeparameter, Messreihen) lokal verwalten.
-2. Akku-Daten per Gemini recherchieren und strukturiert übernehmen.
+2. Zelltyp-Daten per Gemini/DeepSeek recherchieren und strukturiert übernehmen.
 3. Lade-/Entladeparameter direkt an den MC5000 senden.
 4. Live-Daten der 4 Slots anzeigen.
 
 ## Stack
 Kotlin · Compose (Material 3) · MVVM + Repository + Flow · Room + KSP · Navigation-Compose ·
-Vico · Gson · natives BLE (`android.bluetooth.le`) · Gemini API. `minSdk 26`, `targetSdk 34`.
+Vico · Gson · natives BLE (`android.bluetooth.le`) · Gemini + DeepSeek API. `minSdk 26`, `targetSdk 34`.
 
 ## Wichtige Dateien
 - `data/ble/ProtocolCodec.kt` – Paket-Framing, Prüfsumme, Kommandos (`0x91`/`0x93`/`0x94`), Status-Parser.
 - `data/ble/Mc5000BleManager.kt` – Scan/Connect/Notify, MTU, Write (`WRITE_TYPE_NO_RESPONSE`), Timeout.
-- `data/db/` – Room-Entities (Battery, ChargeProfile, Measurement) + DAOs.
-- `data/repository/` – Battery-, Ble-, Ai-, ExportImport-, Measurement-Repository.
-- `ui/screens/` + `ui/viewmodels/` – Compose-UI und ViewModels.
+- `data/db/` – Room-Entities (CellType, Battery, TestResult, ChargeProfile, Measurement) + DAOs.
+- `data/assessment/AssessmentLogic.kt` – IR-/SOH-Bewertung + Teststrom-Defaults.
+- `data/ApiKeyStore.kt` – Gemini-/DeepSeek-Key (SharedPreferences).
+- `data/repository/` – Battery-, Ble-, Ai-, ExportImport-, Measurement-, Test-Repository.
+- `ui/screens/` + `ui/test/` + `ui/viewmodels/` – Compose-UI und ViewModels.
 - `MainActivity.kt` – Navigation + manuelle DI.
 
-## Datenmodell
-- **BatteryEntity:** id, brand, model, chemistry, nominalVoltageV, capacityMah, size,
-  internalResistanceMOhm, maxChargeCurrentMa, maxDischargeCurrentMa, purchaseDate, notes, …
-- **ChargeProfileEntity:** batteryId, mode, chargeCurrentMa, dischargeCurrentMa, targetVoltageMv,
-  cutoffVoltageMv, terminationCurrentMa, cycleDirection, cycleCount, restChargeMin,
-  restDischargeMin, trickleChargeMa, deltaPeakMv, cutoffTimerMin, maxTimeMin
-- **MeasurementEntity:** batteryId, slot, timestamp, voltageV, currentA, temperatureC,
-  capacityMah, internalResistanceMOhm, phase, status
+## Datenmodell (zweistufig: Zelltyp ← Zelle ← Testergebnis)
+- **CellTypeEntity:** Seriendaten (manufacturer, model, chemistry, nominalVoltageV, nominalCapacityMah,
+  chargeEndVoltageV, chargeCurrent*, dischargeCutoff*, dischargeCurrent*, deltaPeakMv, capacityCutoffMah,
+  trickleChargeMa, keepVoltageMv, storage*, cycleLife*, fast/slow-Testströme, measuredTypical*, extras, notes, …).
+- **BatteryEntity:** konkrete Zelle – cellTypeId (FK), label, serialNumber, origin, purchaseDate,
+  purchaseCapacityMah, purchaseInternalResistanceMOhm, location, status (NEW/USED/SORT_OUT/DEFECT), notes.
+- **TestResultEntity:** batteryId (FK), slot, timestamp, testType, charge/dischargeCurrent, cutoffVoltageMv,
+  measuredCapacityMah, internalResistanceMOhm, sohPercent, recommendation, note.
+- **ChargeProfileEntity:** 0x94-Konfigfelder. **MeasurementEntity:** Live-Messwerte.
+- Beziehung: `BatteryEntity.cellTypeId → CellTypeEntity.id`; TestResult/ChargeProfile/Measurement → BatteryEntity.
 
 ## BLE-Protokoll (Kurzfassung)
 - Service `0000ffe0-0000-1000-8000-00805f9b34fb`, Char `0000ffe1-…`
@@ -65,5 +69,5 @@ $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
 - Dieselbe Datei nie gleichzeitig in VS Code und Android Studio bearbeiten.
 
 ## Konventionen
-- UI-Texte Deutsch, Code Englisch. API-Keys über `local.properties` (`GEMINI_API_KEY`).
+- UI-Texte Deutsch, Code Englisch. API-Keys (Gemini/DeepSeek) in der App (Einstellungen), Fallback `local.properties`.
 - Weitere Regeln: `.clinerules` und `docs/KONZEPT.md`.
