@@ -1,0 +1,56 @@
+package com.batteryexpert.data.db
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "cell_types")
+data class CellTypeEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val manufacturer: String,
+    val model: String,
+    val aliases: String? = null,
+    val size: String,
+    val chemistry: String,
+    val nominalVoltageV: Float,
+    val nominalCapacityMah: Int,
+    val nominalEnergyWh: Float? = null,
+    val typicalInternalResistanceMOhm: Int? = null,
+    val irMeasurementNote: String? = null,
+    val chargeEndVoltageV: Float? = null,
+    val chargeCurrentStandardMa: Int? = null,
+    val chargeCurrentOptimalMa: Int? = null,
+    val chargeCurrentMaxMa: Int? = null,
+    val chargeTerminationCurrentMa: Int? = null,
+    val chargeTempMinC: Int? = null,
+    val chargeTempMaxC: Int? = null,
+    val deltaPeakMv: Int? = null,
+    val capacityCutoffMah: Int? = null,
+    val trickleChargeMa: Int? = null,
+    val keepVoltageMv: Int? = null,
+    val dischargeCutoffRecommendedV: Float? = null,
+    val dischargeCutoffAbsoluteMinV: Float? = null,
+    val dischargeCurrentStandardMa: Int? = null,
+    val dischargeCurrentMaxContinuousMa: Int? = null,
+    val dischargeCurrentMaxPulseMa: Int? = null,
+    val dischargeTempMinC: Int? = null,
+    val dischargeTempMaxC: Int? = null,
+    val storageVoltageV: Float? = null,
+    val storageTempMinC: Int? = null,
+    val storageTempMaxC: Int? = null,
+    val selfDischargePerMonthPercent: Float? = null,
+    val cycleLifeTo80Percent: Int? = null,
+    val cycleLifeNote: String? = null,
+    val maxCellTempC: Int? = null,
+    val fastChargeCurrentMa: Int = 0,
+    val fastDischargeCurrentMa: Int = 0,
+    val slowChargeCurrentMa: Int = 0,
+    val slowDischargeCurrentMa: Int = 0,
+    val measuredTypicalCapacityMah: Int? = null,
+    val measuredTypicalIRMOhm: Int? = null,
+    val sourceUrl: String? = null,
+    val extras: String? = null,
+    val notes: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)

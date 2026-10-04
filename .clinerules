@@ -1,0 +1,46 @@
+# Cline-Regeln für BatteryExpert
+
+## Arbeitsteilung & Grenzen (verbindlich)
+- **Kein Git:** Sämtliche Git-Aktivitäten (add, commit, push, pull, branch, checkout …)
+  macht der Nutzer **manuell selbst**. Kein Agent führt Git-Befehle aus.
+- **Code wird in Android Studio geschrieben.** Cline schreibt keine Kotlin/Compose/XML-
+  Quellcode-Dateien direkt, sondern liefert Diagnosen, Reviews und **exakte Patch-/Code-Vorschläge
+  als Text**, die der Nutzer in Android Studio anwendet (dort greifen Sync/Lint sofort).
+- Cline darf weiterhin: Recherche, Konzept, Planung, Doku (README, docs/, .clinerules, agent.md),
+  Dateien lesen, Fehler analysieren sowie **Build/Test/Lint von der CLI validieren**
+  (`gradlew assembleDebug`, `gradlew testDebugUnitTest`, `gradlew lint`).
+- Dieselbe Datei nie gleichzeitig in VS Code und Android Studio bearbeiten.
+
+## Sprache
+- UI-Texte und nutzerbezogene Strings: **Deutsch**.
+- Code, Identifier, Pakete, Klassennamen: **Englisch**.
+
+## Technik (verbindlich)
+- Kotlin, Jetpack Compose (Material 3), Architektur MVVM + Repository + Flow.
+- Datenbank: Room (KSP). Navigation: Navigation-Compose. Diagramme: Vico. JSON: Gson.
+- BLE ausschließlich über natives `android.bluetooth.le` – **keine** Fremd-BLE-Library.
+- Neue Abhängigkeiten nur über `gradle/libs.versions.toml` und nur nach Absprache.
+
+## Architektur
+- Schichten: `ui/screens/` → `ui/viewmodels/` → `data/repository/` → `data/` (ble/db/ai).
+- ViewModels halten keinen Android-`Context`; BLE läuft über `Mc5000BleManager`
+  (Context wird dem Manager bei der Erstellung übergeben).
+- Asynchron mit Kotlin-Coroutinen; die UI beobachtet `StateFlow`/`Flow`.
+
+## BLE-Protokoll
+- Das MC5000-Protokoll ist reverse-engineered. Details in `docs/KONZEPT.md`.
+- Referenz-Implementierung: https://github.com/rssdev10/skyrc-mc-rs
+- Vor Änderungen an `ProtocolCodec` (v. a. `0x94`-Konfig-Layout und `0x25`-Handshake)
+  gegen die Referenz verifizieren. Unbekanntes **nicht raten**, sondern als
+  `TODO`/Kommentar kennzeichnen.
+- Charakteristik `0xffe1` ist `WRITE_WITHOUT_RESPONSE` → immer
+  `WRITE_TYPE_NO_RESPONSE` verwenden.
+
+## Tests
+- Änderungen an `ProtocolCodec` mit Unit-Tests in `ProtocolCodecTest` absichern.
+- Vor Abschluss: `.\gradlew.bat testDebugUnitTest` ausführen
+  (JAVA_HOME ggf. auf das Android-Studio-JBR setzen, siehe README).
+
+## Sonstiges
+- API-Keys nie hartcodieren (`local.properties` → `BuildConfig`, siehe `GEMINI_API_KEY`).
+- `local.properties` ist gitignored.
