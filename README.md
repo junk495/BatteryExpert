@@ -5,6 +5,12 @@ Android-App zur Verwaltung von Akku-Daten und zur direkten Steuerung des
 
 > Nur Android. Entwicklung ausschließlich in Android Studio.
 
+> ⚠️ **Rechtlicher Hinweis:** Dieses Projekt ist ein privates Hobby-Projekt und
+> steht in **keiner Verbindung** zu SkyRC Technology Co., Ltd. „SkyRC" und
+> „MC5000" sind Marken ihrer jeweiligen Inhaber. Die Nutzung erfolgt
+> **ausschließlich auf eigene Verantwortung** – Details unter
+> [Haftungsausschluss](#haftungsausschluss).
+
 ## Funktionen
 
 - **Zelltypen-Datenbank:** Seriendaten (Datenblatt) je Zelltyp verwalten – Hersteller, Modell,
@@ -100,9 +106,42 @@ Details: [`docs/KONZEPT.md`](docs/KONZEPT.md).
 - [`skyrc-mc3000`](https://github.com/kolinger/skyrc-mc3000) (GPL-3.0) – Python-BLE-Monitor
 - [`skyrc.com/MC5000`](https://www.skyrc.com/MC5000) – offizielle Produktseite
 
+## Haftungsausschluss
+
+- **Keine Verbindung zum Hersteller:** BatteryExpert ist ein unabhängiges,
+  privates Hobby-Projekt. Es wird nicht von SkyRC Technology Co., Ltd. entwickelt,
+  unterstützt, gesponsert oder freigegeben. „SkyRC" und „MC5000" sind Marken
+  ihrer jeweiligen Inhaber und werden hier nur zur Beschreibung der Kompatibilität
+  genannt.
+- **Reiner Hobby-Zweck:** Die App entsteht aus privatem Interesse an der Technik
+  und ist für den eigenen, nicht-kommerziellen Gebrauch gedacht.
+- **Keine Haftung:** Die Software wird ohne jegliche Gewährleistung bereitgestellt
+  (siehe GPL-3.0). Der Umgang mit Akkus – insbesondere Lithium-Ionen und NiMH –
+  sowie das Laden/Entladen ist grundsätzlich mit Risiken verbunden (u. a. Brand-
+  und Explosionsgefahr bei fehlerhaften Zellen, falschen Parametern oder defekter
+  Hardware). Schäden am Ladegerät, an Akkus oder anderem Eigentum sowie Personen-
+  und Folgeschäden liegen nicht in der Verantwortung der Autoren.
+- **Nutzung auf eigene Verantwortung:** Jede Nutzung erfolgt vollständig auf
+  eigenes Risiko. Wer die App einsetzt, bestätigt damit, Funktionsweise und
+  Risiken zu verstehen und verantwortungsvoll zu handeln (geeignete Umgebung,
+  Brandschutz, Beaufsichtigung, korrekte Lade-/Entladeparameter).
+
 ## Lizenz
 
-Copyright (c) 2026 junk495
+BatteryExpert – Verwaltung von Akku-Daten und Steuerung des SkyRC MC5000
+Copyright (C) 2026 junk495
 
-Lizenziert unter der [PolyForm Noncommercial License 1.0.0](LICENSE) – freie, nicht-kommerzielle Nutzung.
+Dieses Programm ist freie Software: Sie können es unter den Bedingungen der
+GNU General Public License, wie von der Free Software Foundation veröffentlicht,
+weiterverbreiten und/oder modifizieren, gemäß Version 3 der Lizenz.
+
+Die Veröffentlichung dieses Programms erfolgt in der Hoffnung, dass es Ihnen von
+Nutzen sein wird, aber OHNE IRGENDEINE GARANTIE, sogar ohne die implizite Garantie
+der MARKTREIFE oder der VERWENDBARKEIT FÜR EINEN BESTIMMTEN ZWECK. Details finden
+Sie in der GNU General Public License.
+
+Sie sollten ein Exemplar der GNU General Public License zusammen mit diesem
+Programm erhalten haben. Falls nicht, siehe <https://www.gnu.org/licenses/>.
+
+Vollständiger Lizenztext: [LICENSE](LICENSE) · SPDX: `GPL-3.0-only`
 
