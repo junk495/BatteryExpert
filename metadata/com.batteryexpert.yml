@@ -1,0 +1,49 @@
+Categories:
+  - Science & Education
+License: GPL-3.0-only
+AuthorName: junk495
+SourceCode: https://github.com/junk495/BatteryExpert
+IssueTracker: https://github.com/junk495/BatteryExpert/issues
+Changelog: https://github.com/junk495/BatteryExpert/releases
+
+AutoName: BatteryExpert
+Summary: Manage batteries and control the SkyRC MC5000 charger over BLE
+Description: |-
+  BatteryExpert manages rechargeable battery data and directly controls the
+  SkyRC MC5000 (4-slot charger) over Bluetooth Low Energy (BLE).
+
+  Features:
+  * Cell-type database with datasheet data per cell type (manufacturer, model,
+    chemistry, capacity, charge/discharge parameters, NiMH delta-peak, ...)
+  * Cell inventory: assign individual cells to a type (origin, status, location)
+  * Live monitoring: voltage, current, capacity, time and internal resistance of
+    the four slots in real time, including a voltage/current chart
+  * Cell assessment: internal-resistance and capacity/SOH tests with a
+    traffic-light recommendation (ok / watch / sort out)
+  * Control: send charge/discharge parameters directly to the MC5000
+  * Optional AI research: look up cell-type data via Gemini or DeepSeek (requires
+    your own API key; the app works fully without it)
+  * Import/Export: back up and exchange data as JSON (CSV for test results)
+
+  This is an independent hobby project, not affiliated with, endorsed or
+  sponsored by SkyRC Technology Co., Ltd. "SkyRC" and "MC5000" are trademarks of
+  their respective owners. Use at your own risk - charging and discharging
+  batteries (especially Li-ion and NiMH) can be dangerous. The user interface
+  is in German.
+
+RepoType: git
+Repo: https://github.com/junk495/BatteryExpert
+
+Builds:
+  - versionName: '1.0'
+    versionCode: 1
+    commit: v1.0
+    gradle:
+      - yes
+
+UpdateCheckMode: Tags
+CurrentVersion: 1.0
+CurrentVersionCode: 1
+
+AntiFeatures:
+  - NonFreeNet

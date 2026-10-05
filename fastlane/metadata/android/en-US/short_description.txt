@@ -1,0 +1,1 @@
+Manage batteries and control the SkyRC MC5000 charger over BLE

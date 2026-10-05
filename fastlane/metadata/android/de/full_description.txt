@@ -1,0 +1,12 @@
+BatteryExpert verwaltet Akku-Daten und steuert das SkyRC MC5000 (4-Slot-Ladegerät) direkt über Bluetooth Low Energy (BLE).
+
+Funktionen:
+* Zelltypen-Datenbank mit Datenblatt-Daten je Zelltyp (Hersteller, Modell, Chemie, Kapazität, Lade-/Entladeparameter, NiMH-Delta-Peak, ...)
+* Zellen-Bestand: einzelne Zellen einem Zelltyp zuordnen (Herkunft, Status, Lagerort)
+* Live-Monitoring: Spannung, Strom, Kapazität, Zeit und Innenwiderstand der vier Slots in Echtzeit, inklusive Spannungs-/Stromdiagramm
+* Zell-Bewertung: Innenwiderstands- und Kapazitäts-/SOH-Tests mit Ampel-Empfehlung (ok / beobachten / aussortieren)
+* Steuerung: Lade-/Entladeparameter direkt an das MC5000 senden
+* Optionale KI-Recherche: Zelltyp-Daten per Gemini oder DeepSeek recherchieren (benötigt einen eigenen API-Key; die App funktioniert auch komplett ohne)
+* Import/Export: Daten als JSON sichern/austauschen (CSV für Testergebnisse)
+
+Dies ist ein unabhängiges Hobby-Projekt und steht in keiner Verbindung zu SkyRC Technology Co., Ltd. "SkyRC" und "MC5000" sind Marken ihrer jeweiligen Inhaber. Nutzung auf eigene Verantwortung - das Laden/Entladen von Akkus (insbesondere Lithium-Ionen und NiMH) kann gefährlich sein.

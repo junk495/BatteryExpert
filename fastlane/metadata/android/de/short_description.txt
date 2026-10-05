@@ -1,0 +1,1 @@
+Akkus verwalten und das Ladegerät SkyRC MC5000 per BLE steuern

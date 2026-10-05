@@ -17,10 +17,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -61,24 +60,10 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 }
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            BatteryExpertTheme {
-                MainApp()
-            }
-        }
-    }
-}
 
-@Composable
-fun MainApp() {
-    val context = LocalContext.current
-
-    val db = remember {
+    private val db by lazy {
         Room.databaseBuilder(
-            context.applicationContext,
+            applicationContext,
             AppDatabase::class.java,
             "battery_expert.db"
         )
@@ -86,23 +71,52 @@ fun MainApp() {
         .build()
     }
 
-    val apiKeyStore = remember { ApiKeyStore(context.applicationContext) }
-    val aiRepo = remember { AiRepository(apiKeyStore) }
+    private val apiKeyStore by lazy { ApiKeyStore(applicationContext) }
+    private val aiRepo by lazy { AiRepository(apiKeyStore) }
 
-    val batteryRepo = remember { BatteryRepository(db.cellTypeDao(), db.batteryDao(), db.chargeProfileDao()) }
-    val measurementRepo = remember { MeasurementRepository(db.measurementDao()) }
-    val exportImportRepo = remember { ExportImportRepository(db.cellTypeDao(), db.batteryDao(), db.chargeProfileDao(), db.measurementDao(), db.testResultDao()) }
-    val testRepo = remember { TestRepository(db.cellTypeDao(), db.batteryDao(), db.testResultDao()) }
+    private val batteryRepo by lazy { BatteryRepository(db.cellTypeDao(), db.batteryDao(), db.chargeProfileDao()) }
+    private val measurementRepo by lazy { MeasurementRepository(db.measurementDao()) }
+    private val exportImportRepo by lazy { ExportImportRepository(db.cellTypeDao(), db.batteryDao(), db.chargeProfileDao(), db.measurementDao(), db.testResultDao()) }
+    private val testRepo by lazy { TestRepository(db.cellTypeDao(), db.batteryDao(), db.testResultDao()) }
 
-    val bleManager = remember { Mc5000BleManager(context.applicationContext) }
-    val bleRepo = remember { BleRepository(bleManager) }
+    private val bleManager by lazy { Mc5000BleManager(applicationContext) }
+    private val bleRepo by lazy { BleRepository(bleManager) }
 
-    val listViewModel = remember { BatteryListViewModel(batteryRepo) }
-    val detailViewModel = remember { BatteryDetailViewModel(batteryRepo, measurementRepo) }
-    val monitorViewModel = remember { MonitorViewModel(bleRepo) }
-    val settingsViewModel = remember { SettingsViewModel(exportImportRepo, bleRepo, apiKeyStore) }
-    val testViewModel = remember { TestViewModel(testRepo, bleRepo) }
-    val aiResearchViewModel = remember { AiResearchViewModel(aiRepo) }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            BatteryExpertTheme {
+                MainApp(
+                    batteryRepo = batteryRepo,
+                    measurementRepo = measurementRepo,
+                    exportImportRepo = exportImportRepo,
+                    testRepo = testRepo,
+                    bleRepo = bleRepo,
+                    apiKeyStore = apiKeyStore,
+                    aiRepo = aiRepo
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MainApp(
+    batteryRepo: BatteryRepository,
+    measurementRepo: MeasurementRepository,
+    exportImportRepo: ExportImportRepository,
+    testRepo: TestRepository,
+    bleRepo: BleRepository,
+    apiKeyStore: ApiKeyStore,
+    aiRepo: AiRepository
+) {
+    val listViewModel: BatteryListViewModel = viewModel { BatteryListViewModel(batteryRepo) }
+    val detailViewModel: BatteryDetailViewModel = viewModel { BatteryDetailViewModel(batteryRepo, measurementRepo) }
+    val monitorViewModel: MonitorViewModel = viewModel { MonitorViewModel(bleRepo) }
+    val settingsViewModel: SettingsViewModel = viewModel { SettingsViewModel(exportImportRepo, bleRepo, apiKeyStore) }
+    val testViewModel: TestViewModel = viewModel { TestViewModel(testRepo, bleRepo) }
+    val aiResearchViewModel: AiResearchViewModel = viewModel { AiResearchViewModel(aiRepo) }
 
     val navController = rememberNavController()
     val bottomNavScreens = listOf(
