@@ -42,11 +42,15 @@ import com.batteryexpert.data.ble.ConnectionState
 import com.batteryexpert.data.ble.SlotStatus
 import com.batteryexpert.ui.viewmodels.MonitorViewModel
 import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
+import com.patrykandpatrick.vico.compose.axis.vertical.rememberEndAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.line.lineChart
 import com.patrykandpatrick.vico.compose.chart.line.lineSpec
 import com.patrykandpatrick.vico.compose.chart.scroll.rememberChartScrollSpec
+import com.patrykandpatrick.vico.core.axis.AxisPosition
+import com.patrykandpatrick.vico.core.chart.composed.plus
+import com.patrykandpatrick.vico.core.entry.composed.plus
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
 import java.util.Locale
@@ -126,12 +130,14 @@ fun MonitorScreen(
                 val tHistory = history?.timestamps ?: emptyList()
                 val vHistory = history?.voltages ?: emptyList()
                 val cHistory = history?.currents ?: emptyList()
+                val capHistory = history?.capacities ?: emptyList()
 
                 SlotCard(
                     slotNumber = slotIndex,
                     slotStatus = status,
                     voltageHistory = vHistory,
                     currentHistory = cHistory,
+                    capacityHistory = capHistory,
                     timestamps = tHistory,
                     onConfigure = { configSheetVisible = true }
                 )
@@ -156,6 +162,7 @@ fun SlotCard(
     slotStatus: SlotStatus?,
     voltageHistory: List<Float>,
     currentHistory: List<Float>,
+    capacityHistory: List<Int>,
     timestamps: List<Long>,
     onConfigure: () -> Unit
 ) {
@@ -219,23 +226,22 @@ fun SlotCard(
                 ) {
                     ValueColumn(label = "Spannung", value = "%.2f V".format(Locale.GERMANY, slotStatus.voltageV))
                     ValueColumn(label = "Strom", value = "%.2f A".format(Locale.GERMANY, slotStatus.currentA))
-                    ValueColumn(label = "Temp.", value = "%.1f °C".format(Locale.GERMANY, slotStatus.temperatureC))
+                    ValueColumn(label = "Kapazität", value = "${slotStatus.capacityMah} mAh")
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    ValueColumn(label = "Kapazität", value = "${slotStatus.capacityMah} mAh")
                     ValueColumn(label = "Zeit", value = formatTime(slotStatus.elapsedSeconds))
                     ValueColumn(label = "Innenwiderstand", value = "${slotStatus.internalResistanceMOhm} mΩ")
+                    ValueColumn(label = "Modus", value = slotStatus.mode)
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    ValueColumn(label = "Modus", value = slotStatus.mode)
                     ValueColumn(label = "Chemie", value = slotStatus.chemistry)
                 }
 
@@ -250,7 +256,7 @@ fun SlotCard(
                 if (voltageHistory.size >= 2 && voltageHistory.any { it > 0f }) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Spannungs- & Stromverlauf (Live)",
+                        text = "Spannungs-, Strom- & Kapazitätsverlauf (Live)",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -270,16 +276,35 @@ fun SlotCard(
                         val minutes = round(rawMin * 100f) / 100f
                         entryOf(minutes, a)
                     }
+                    val capacityEntries = capacityHistory.mapIndexed { idx, cap ->
+                        val rawMin = if (idx in timestamps.indices) (timestamps[idx] - firstTimestamp) / 60_000f else idx.toFloat()
+                        val minutes = round(rawMin * 100f) / 100f
+                        entryOf(minutes, cap.toFloat())
+                    }
+
+                    val mainChart = lineChart(
+                        lines = listOf(
+                            lineSpec(lineColor = Color(0xFF1E88E5)),
+                            lineSpec(lineColor = Color(0xFFE53935))
+                        ),
+                        targetVerticalAxisPosition = AxisPosition.Vertical.Start
+                    )
+
+                    val capacityChart = lineChart(
+                        lines = listOf(
+                            lineSpec(lineColor = Color(0xFF43A047))
+                        ),
+                        targetVerticalAxisPosition = AxisPosition.Vertical.End
+                    )
+
+                    val composedChart = mainChart + capacityChart
+                    val composedModel = entryModelOf(voltageEntries, currentEntries) + entryModelOf(capacityEntries)
 
                     Chart(
-                        chart = lineChart(
-                            lines = listOf(
-                                lineSpec(lineColor = Color(0xFF1E88E5)),
-                                lineSpec(lineColor = Color(0xFFE53935))
-                            )
-                        ),
-                        model = entryModelOf(voltageEntries, currentEntries),
+                        chart = composedChart,
+                        model = composedModel,
                         startAxis = rememberStartAxis(),
+                        endAxis = rememberEndAxis(),
                         bottomAxis = rememberBottomAxis(
                             valueFormatter = { value, _ -> formatAxisMinutes(value) }
                         ),
@@ -302,6 +327,11 @@ fun SlotCard(
                         Text(
                             text = "● Strom (A)",
                             color = Color(0xFFE53935),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                        Text(
+                            text = "● Kapazität (mAh)",
+                            color = Color(0xFF43A047),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }

@@ -37,7 +37,8 @@ import kotlin.coroutines.resume
 data class SlotHistory(
     val timestamps: MutableList<Long> = mutableListOf(),
     val voltages: MutableList<Float> = mutableListOf(),
-    val currents: MutableList<Float> = mutableListOf()
+    val currents: MutableList<Float> = mutableListOf(),
+    val capacities: MutableList<Int> = mutableListOf()
 )
 
 class Mc5000BleManager(
@@ -199,6 +200,7 @@ class Mc5000BleManager(
         h.timestamps.add(System.currentTimeMillis())
         h.voltages.add(status.voltageV)
         h.currents.add(status.currentA)
+        h.capacities.add(status.capacityMah)
         map[status.slot] = h
         _slotHistories.value = map
     }
