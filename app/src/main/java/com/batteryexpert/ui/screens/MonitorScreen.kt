@@ -194,6 +194,14 @@ fun SlotCard(
                     }
                 }
 
+                slotStatus?.chemistry?.let { chem ->
+                    Text(
+                        text = chem,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
                 Surface(
                     color = statusColor.copy(alpha = 0.15f),
                     shape = CircleShape
@@ -238,13 +246,6 @@ fun SlotCard(
                     ValueColumn(label = "Modus", value = slotStatus.mode)
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    ValueColumn(label = "Chemie", value = slotStatus.chemistry)
-                }
-
                 if (slotStatus.error.isNotBlank()) {
                     Text(
                         text = "Fehler: ${slotStatus.error}",
@@ -256,7 +257,7 @@ fun SlotCard(
                 if (voltageHistory.size >= 2 && voltageHistory.any { it > 0f }) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Spannungs-, Strom- & Kapazitätsverlauf (Live)",
+                        text = "Spannungs-, Strom- & Ladungsverlauf (Live)",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -330,7 +331,7 @@ fun SlotCard(
                             style = MaterialTheme.typography.labelSmall
                         )
                         Text(
-                            text = "● Kapazität (mAh)",
+                            text = "● Ladung (mAh)",
                             color = Color(0xFF43A047),
                             style = MaterialTheme.typography.labelSmall
                         )
