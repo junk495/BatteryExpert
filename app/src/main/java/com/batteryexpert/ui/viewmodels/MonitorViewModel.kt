@@ -4,84 +4,67 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.batteryexpert.data.ble.ConnectionState
 import com.batteryexpert.data.ble.ProtocolCodec
+import com.batteryexpert.data.ble.SlotHistory
 import com.batteryexpert.data.ble.SlotStatus
+import com.batteryexpert.data.db.CellTypeEntity
+import com.batteryexpert.data.db.ChargeProfileEntity
+import com.batteryexpert.data.repository.BatteryRepository
 import com.batteryexpert.data.repository.BleRepository
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MonitorViewModel(
     private val bleRepository: BleRepository,
+    private val batteryRepository: BatteryRepository,
     private val protocolCodec: ProtocolCodec = ProtocolCodec()
 ) : ViewModel() {
 
     val connectionState: StateFlow<ConnectionState> = bleRepository.connectionState
+    val slotStatuses: StateFlow<List<SlotStatus>> = bleRepository.slotStatuses
+    val slotHistories: StateFlow<Map<Int, SlotHistory>> = bleRepository.slotHistories
 
-    private val _slotStatuses = MutableStateFlow<List<SlotStatus>>(emptyList())
-    val slotStatuses: StateFlow<List<SlotStatus>> = _slotStatuses.asStateFlow()
-
-    private var pollingJob: Job? = null
-
-    init {
-        observeConnectionAndPoll()
-        observeSlotStatuses()
-    }
+    val cellTypes: StateFlow<List<CellTypeEntity>> = batteryRepository.getCellTypes()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun sendStartStop(action: Int) {
-        viewModelScope.launch {
-            bleRepository.startStop(action)
-        }
+        viewModelScope.launch { bleRepository.startStop(action) }
     }
 
-    private fun observeConnectionAndPoll() {
+    fun sendConfig(
+        profile: ChargeProfileEntity,
+        chemistryCode: Int,
+        capacityCutoffMah: Int,
+        targetSlots: Set<Int>
+    ) {
         viewModelScope.launch {
-            connectionState.collectLatest { state ->
-                if (state == ConnectionState.CONNECTED) {
-                    startPollingSlots()
+            try {
+                bleRepository.startStop(0)
+                delay(200)
+
+                if (targetSlots.size == 4) {
+                    bleRepository.writePacket(
+                        protocolCodec.buildChargeConfig(profile, chemistryCode, 0x00, capacityCutoffMah)
+                    )
+                    delay(200)
+                    bleRepository.startStop(3)
                 } else {
-                    stopPollingSlots()
-                }
-            }
-        }
-    }
-
-    private fun observeSlotStatuses() {
-        viewModelScope.launch {
-            bleRepository.observeSlotStatuses().collect { status ->
-                val current = _slotStatuses.value.toMutableList()
-                current.removeAll { it.slot == status.slot }
-                current.add(status)
-                _slotStatuses.value = current
-            }
-        }
-    }
-
-    private fun startPollingSlots() {
-        pollingJob?.cancel()
-        pollingJob = viewModelScope.launch {
-            val slotBitmasks = listOf(1, 2, 4, 8)
-
-            while (true) {
-                if (connectionState.value == ConnectionState.CONNECTED) {
-                    for (mask in slotBitmasks) {
-                        try {
-                            bleRepository.writePacket(protocolCodec.buildStatusRequest(mask))
-                            delay(100L)
-                        } catch (_: Exception) {
-                        }
+                    for (slot in targetSlots.sorted()) {
+                        val bm = 1 shl (slot - 1)
+                        bleRepository.writePacket(
+                            protocolCodec.buildChargeConfig(profile, chemistryCode, bm, capacityCutoffMah)
+                        )
+                        delay(150)
+                    }
+                    delay(200)
+                    for (slot in targetSlots.sorted()) {
+                        bleRepository.startStop(1 shl (slot - 1))
                     }
                 }
-                delay(10_000L)
+            } catch (_: Exception) {
             }
         }
-    }
-
-    private fun stopPollingSlots() {
-        pollingJob?.cancel()
-        _slotStatuses.value = emptyList()
     }
 }

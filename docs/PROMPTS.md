@@ -162,6 +162,10 @@ Nutze MonitorViewModel. Zeige Permission-Abfrage korrekt an.
 
 ## Prompt 7 – UI: Konfig-Editor + Senden an MC5000
 
+> ⚠️ **Ersetzt:** Der manuelle Konfig-Editor wurde durch das **ConfigSheet im Monitor**
+> ersetzt (Slot antippen → Zell-Setting wählen + nachjustieren → Slots auswählen → senden).
+> Dieser Prompt ist nur noch historisch.
+
 ```
 Implementiere ConfigEditorScreen:
 Wählt eine BatteryEntity + ein ChargeProfileEntity, zeigt alle Felder (Modus als Dropdown:

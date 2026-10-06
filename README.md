@@ -65,17 +65,19 @@ $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
 ```
 app/src/main/java/com/batteryexpert/
   data/
-    ble/          Mc5000BleManager, ProtocolCodec, BleDevice, SlotStatus
+    ble/          Mc5000BleManager, Mc5000Service (Foreground), ProtocolCodec,
+                  SlotStatus, SlotHistory, BleDevice
     db/           Room-Entities (CellType, Battery, TestResult, …), DAOs, AppDatabase
     assessment/   AssessmentLogic (IR/SOH/Empfehlung)
     repository/   Battery-, Ble-, Ai-, ExportImport-, Measurement-, Test-Repository
     ApiKeyStore.kt (Gemini-/DeepSeek-Key)
   ui/
-    screens/      BatteryList, BatteryDetail, BatteryEdit, Monitor,
-                  ConfigEditor, AiResearch, Settings
+    screens/      BatteryList, BatteryDetail, BatteryEdit, Monitor (+ ConfigSheet),
+                  AiResearch, Settings
     test/         TestScreen (Zell-Bewertung)
     viewmodels/   …
     theme/
+  BatteryExpertApp.kt (Application, Singleton-BLE-Manager)
   MainActivity.kt
 docs/
   KONZEPT.md       Konzept & Architektur

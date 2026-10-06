@@ -15,21 +15,25 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -76,40 +80,10 @@ fun MonitorScreen(
 ) {
     val connectionState by viewModel.connectionState.collectAsState()
     val slotStatuses by viewModel.slotStatuses.collectAsState()
+    val slotHistories by viewModel.slotHistories.collectAsState()
+    val cellTypes by viewModel.cellTypes.collectAsState()
 
-    val slotTimestamps = remember {
-        mutableStateMapOf<Int, MutableList<Long>>(
-            1 to mutableListOf(), 2 to mutableListOf(), 3 to mutableListOf(), 4 to mutableListOf()
-        )
-    }
-
-    val slotVoltageHistories = remember {
-        mutableStateMapOf<Int, MutableList<Float>>(
-            1 to mutableListOf(), 2 to mutableListOf(), 3 to mutableListOf(), 4 to mutableListOf()
-        )
-    }
-
-    val slotCurrentHistories = remember {
-        mutableStateMapOf<Int, MutableList<Float>>(
-            1 to mutableListOf(), 2 to mutableListOf(), 3 to mutableListOf(), 4 to mutableListOf()
-        )
-    }
-
-    LaunchedEffect(slotStatuses) {
-        val now = System.currentTimeMillis()
-        slotStatuses.forEach { status ->
-            val tHistory = slotTimestamps.getOrPut(status.slot) { mutableListOf() }
-            val vHistory = slotVoltageHistories.getOrPut(status.slot) { mutableListOf() }
-            val cHistory = slotCurrentHistories.getOrPut(status.slot) { mutableListOf() }
-
-            val lastT = tHistory.lastOrNull() ?: 0L
-            if (now - lastT >= 5_000L || tHistory.isEmpty()) {
-                tHistory.add(now)
-                vHistory.add(status.voltageV)
-                cHistory.add(status.currentA)
-            }
-        }
-    }
+    var configSheetVisible by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -148,16 +122,28 @@ fun MonitorScreen(
 
             for (slotIndex in 1..4) {
                 val status = slotStatuses.firstOrNull { it.slot == slotIndex }
-                val tHistory = slotTimestamps[slotIndex] ?: emptyList()
-                val vHistory = slotVoltageHistories[slotIndex] ?: emptyList()
-                val cHistory = slotCurrentHistories[slotIndex] ?: emptyList()
+                val history = slotHistories[slotIndex]
+                val tHistory = history?.timestamps ?: emptyList()
+                val vHistory = history?.voltages ?: emptyList()
+                val cHistory = history?.currents ?: emptyList()
 
                 SlotCard(
                     slotNumber = slotIndex,
                     slotStatus = status,
                     voltageHistory = vHistory,
                     currentHistory = cHistory,
-                    timestamps = tHistory
+                    timestamps = tHistory,
+                    onConfigure = { configSheetVisible = true }
+                )
+            }
+
+            if (configSheetVisible) {
+                ConfigSheet(
+                    cellTypes = cellTypes,
+                    onApply = { profile, chem, cap, slots ->
+                        viewModel.sendConfig(profile, chem, cap, slots)
+                    },
+                    onDismiss = { configSheetVisible = false }
                 )
             }
         }
@@ -170,7 +156,8 @@ fun SlotCard(
     slotStatus: SlotStatus?,
     voltageHistory: List<Float>,
     currentHistory: List<Float>,
-    timestamps: List<Long>
+    timestamps: List<Long>,
+    onConfigure: () -> Unit
 ) {
     val statusText = slotStatus?.status ?: "Standby"
     val statusColor = getStatusColor(statusText)
@@ -190,10 +177,15 @@ fun SlotCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Slot $slotNumber",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Slot $slotNumber",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    IconButton(onClick = onConfigure) {
+                        Icon(Icons.Default.Settings, contentDescription = "Konfigurieren")
+                    }
+                }
 
                 Surface(
                     color = statusColor.copy(alpha = 0.15f),

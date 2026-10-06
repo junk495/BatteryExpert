@@ -12,20 +12,33 @@ import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.Context
+import android.content.Intent
 import android.os.Build
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.util.UUID
 import kotlin.coroutines.resume
+
+data class SlotHistory(
+    val timestamps: MutableList<Long> = mutableListOf(),
+    val voltages: MutableList<Float> = mutableListOf(),
+    val currents: MutableList<Float> = mutableListOf()
+)
 
 class Mc5000BleManager(
     private val context: Context,
@@ -37,7 +50,15 @@ class Mc5000BleManager(
         val SERVICE_UUID: UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb")
         val CHARACTERISTIC_UUID: UUID = UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb")
         val CLIENT_CONFIG_DESCRIPTOR_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+
+        private const val KEY_LAST_ADDRESS = "last_device_address"
+        private const val KEY_LAST_NAME = "last_device_name"
+        private const val KEY_AUTO_RECONNECT = "auto_reconnect"
     }
+
+    private val prefs = context.getSharedPreferences("ble_prefs", Context.MODE_PRIVATE)
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val bluetoothManager: BluetoothManager? by lazy {
         context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
@@ -51,7 +72,73 @@ class Mc5000BleManager(
     private val _rawPacketLog = MutableStateFlow<List<String>>(emptyList())
     val rawPacketLog: StateFlow<List<String>> = _rawPacketLog.asStateFlow()
 
+    private val _slotStatuses = MutableStateFlow<List<SlotStatus>>(emptyList())
+    val slotStatuses: StateFlow<List<SlotStatus>> = _slotStatuses.asStateFlow()
+
+    private val _slotHistories = MutableStateFlow<Map<Int, SlotHistory>>(emptyMap())
+    val slotHistories: StateFlow<Map<Int, SlotHistory>> = _slotHistories.asStateFlow()
+
+    private var pollingJob: Job? = null
+    private var reconnectJob: Job? = null
     private var bluetoothGatt: BluetoothGatt? = null
+
+    init {
+        startMonitoring()
+        scope.launch {
+            delay(2_000L)
+            if (isAutoReconnectEnabled()) {
+                scheduleReconnect()
+            }
+        }
+    }
+
+    private fun saveLastDevice(device: BleDevice) {
+        prefs.edit()
+            .putString(KEY_LAST_ADDRESS, device.address)
+            .putString(KEY_LAST_NAME, device.name)
+            .putBoolean(KEY_AUTO_RECONNECT, true)
+            .apply()
+    }
+
+    private fun getLastDevice(): BleDevice? {
+        val address = prefs.getString(KEY_LAST_ADDRESS, null) ?: return null
+        val name = prefs.getString(KEY_LAST_NAME, "") ?: ""
+        val adapter = bluetoothManager?.adapter ?: return null
+        return try {
+            val device = adapter.getRemoteDevice(address)
+            BleDevice(name = name, address = address, device = device)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun isAutoReconnectEnabled(): Boolean = prefs.getBoolean(KEY_AUTO_RECONNECT, false)
+
+    fun setAutoReconnectEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_AUTO_RECONNECT, enabled).apply()
+        if (!enabled) {
+            reconnectJob?.cancel()
+        } else if (_connectionState.value == ConnectionState.DISCONNECTED) {
+            scheduleReconnect()
+        }
+    }
+
+    fun scheduleReconnect() {
+        if (!isAutoReconnectEnabled()) return
+        val last = getLastDevice() ?: return
+        reconnectJob?.cancel()
+        reconnectJob = scope.launch {
+            var attempt = 0
+            while (isAutoReconnectEnabled() && _connectionState.value != ConnectionState.CONNECTED) {
+                attempt++
+                try {
+                    if (connect(last).isSuccess) break
+                } catch (_: Exception) {
+                }
+                delay(minOf(30_000L, attempt * 5_000L))
+            }
+        }
+    }
 
     private fun logRawPacket(prefix: String, bytes: ByteArray) {
         val hex = bytes.joinToString(" ") { "%02X".format(it) }
@@ -60,6 +147,61 @@ class Mc5000BleManager(
     }
 
     fun notifications(): Flow<ByteArray> = _notificationFlow
+
+    private fun startMonitoring() {
+        scope.launch {
+            connectionState.collectLatest { state ->
+                if (state == ConnectionState.CONNECTED) startPolling() else stopPolling()
+            }
+        }
+
+        scope.launch {
+            notifications().collect { bytes ->
+                if (bytes.size >= 4 && (bytes[2].toInt() and 0xFF) == 0x91) {
+                    val status = protocolCodec.parseStatus(bytes)
+                    val current = _slotStatuses.value.toMutableList()
+                    current.removeAll { it.slot == status.slot }
+                    current.add(status)
+                    _slotStatuses.value = current
+                    appendHistory(status)
+                }
+            }
+        }
+    }
+
+    private fun startPolling() {
+        pollingJob?.cancel()
+        pollingJob = scope.launch {
+            val slotBitmasks = listOf(1, 2, 4, 8)
+            while (true) {
+                if (_connectionState.value == ConnectionState.CONNECTED) {
+                    for (mask in slotBitmasks) {
+                        try {
+                            writePacket(protocolCodec.buildStatusRequest(mask))
+                            delay(100L)
+                        } catch (_: Exception) {
+                        }
+                    }
+                }
+                delay(10_000L)
+            }
+        }
+    }
+
+    private fun stopPolling() {
+        pollingJob?.cancel()
+        _slotStatuses.value = emptyList()
+    }
+
+    private fun appendHistory(status: SlotStatus) {
+        val map = _slotHistories.value.toMutableMap()
+        val h = map.getOrPut(status.slot) { SlotHistory() }
+        h.timestamps.add(System.currentTimeMillis())
+        h.voltages.add(status.voltageV)
+        h.currents.add(status.currentA)
+        map[status.slot] = h
+        _slotHistories.value = map
+    }
 
     fun scanDevices(): Flow<List<BleDevice>> = callbackFlow {
         val adapter: BluetoothAdapter? = bluetoothManager?.adapter
@@ -165,7 +307,13 @@ class Mc5000BleManager(
                         }
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         _connectionState.value = ConnectionState.DISCONNECTED
+                        @SuppressLint("MissingPermission")
+                        bluetoothGatt?.close()
+                        bluetoothGatt = null
                         safeResume(Result.failure(IllegalStateException("Disconnected")))
+                        if (isAutoReconnectEnabled()) {
+                            scheduleReconnect()
+                        }
                     }
                 }
 
@@ -195,6 +343,11 @@ class Mc5000BleManager(
                     if (descriptor.uuid == CLIENT_CONFIG_DESCRIPTOR_UUID) {
                         if (status == BluetoothGatt.GATT_SUCCESS) {
                             _connectionState.value = ConnectionState.CONNECTED
+                            saveLastDevice(device)
+                            try {
+                                context.startForegroundService(Intent(context, Mc5000Service::class.java))
+                            } catch (_: Exception) {
+                            }
                             safeResume(Result.success(Unit))
                         } else {
                             _connectionState.value = ConnectionState.DISCONNECTED
@@ -286,7 +439,13 @@ class Mc5000BleManager(
 
     @SuppressLint("MissingPermission")
     suspend fun disconnect() {
+        prefs.edit().putBoolean(KEY_AUTO_RECONNECT, false).apply()
+        reconnectJob?.cancel()
         _connectionState.value = ConnectionState.DISCONNECTING
+        try {
+            context.stopService(Intent(context, Mc5000Service::class.java))
+        } catch (_: Exception) {
+        }
         bluetoothGatt?.let { gatt ->
             gatt.disconnect()
             gatt.close()

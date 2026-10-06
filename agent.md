@@ -14,13 +14,16 @@ Kotlin · Compose (Material 3) · MVVM + Repository + Flow · Room + KSP · Navi
 Vico · Gson · natives BLE (`android.bluetooth.le`) · Gemini + DeepSeek API. `minSdk 26`, `targetSdk 34`.
 
 ## Wichtige Dateien
+- `BatteryExpertApp.kt` – Application; hält den Singleton-`Mc5000BleManager`.
 - `data/ble/ProtocolCodec.kt` – Paket-Framing, Prüfsumme, Kommandos (`0x91`/`0x93`/`0x94`), Status-Parser.
-- `data/ble/Mc5000BleManager.kt` – Scan/Connect/Notify, MTU, Write (`WRITE_TYPE_NO_RESPONSE`), Timeout.
+- `data/ble/Mc5000BleManager.kt` – Singleton: Scan/Connect/Notify, MTU, Write (`WRITE_TYPE_NO_RESPONSE`), Polling + Historie (Application-Scope), Auto-Reconnect.
+- `data/ble/Mc5000Service.kt` – Foreground-Service (Wake-Lock, Benachrichtigung) für Standby.
+- `data/ble/SlotHistory` – Verlauf (Timestamps/Spannung/Strom) je Slot.
 - `data/db/` – Room-Entities (CellType, Battery, TestResult, ChargeProfile, Measurement) + DAOs.
 - `data/assessment/AssessmentLogic.kt` – IR-/SOH-Bewertung + Teststrom-Defaults.
 - `data/ApiKeyStore.kt` – Gemini-/DeepSeek-Key (SharedPreferences).
 - `data/repository/` – Battery-, Ble-, Ai-, ExportImport-, Measurement-, Test-Repository.
-- `ui/screens/` + `ui/test/` + `ui/viewmodels/` – Compose-UI und ViewModels.
+- `ui/screens/` (inkl. `ConfigSheet` im Monitor) + `ui/test/` + `ui/viewmodels/`.
 - `MainActivity.kt` – Navigation + manuelle DI.
 
 ## Datenmodell (zweistufig: Zelltyp ← Zelle ← Testergebnis)

@@ -37,20 +37,21 @@ SkyRC MC5000 (4-Slot-Ladegerät) per Bluetooth Low Energy (BLE).
 
 ```
 com.batteryexpert/
+  BatteryExpertApp.kt  (Application, Singleton-BLE-Manager)
+  MainActivity.kt
   data/
-    ble/        Mc5000BleManager, ProtocolCodec, Commands, SlotStatus
-    db/         Room: Entities, DAOs, AppDatabase
-    ai/         GeminiClient, AiResearchRepository
-    model/      CellType, Battery, ChargeProfile, Measurement, TestResult, Enums
-    repo/       BatteryRepository, BleRepository, AiRepository, TestRepository
+    ble/        Mc5000BleManager, Mc5000Service (Foreground), ProtocolCodec,
+                SlotStatus, SlotHistory, BleDevice
+    db/         Room: Entities (CellType, Battery, TestResult, ChargeProfile, Measurement), DAOs, AppDatabase
+    assessment/ AssessmentLogic (IR/SOH/Empfehlung)
+    repository/ Battery-, Ble-, Ai-, ExportImport-, Measurement-, Test-Repository
+    ApiKeyStore.kt (Gemini-/DeepSeek-Key)
   ui/
-    battery/    BatteryListScreen, BatteryDetailScreen, BatteryEditScreen
-    monitor/    MonitorScreen (4 Slots, Live-Daten)
-    config/     ConfigEditorScreen (→ an MC5000 senden)
-    ai/         AiResearchScreen
-    test/       TestScreen (Bewertung), TestResultScreen
-    settings/   SettingsScreen
-  viewmodel/    ...
+    screens/    BatteryListScreen, BatteryDetailScreen, BatteryEditScreen,
+                MonitorScreen (mit ConfigSheet), AiResearchScreen, SettingsScreen
+    test/       TestScreen (Zell-Bewertung)
+    viewmodels/ ...
+    theme/
 ```
 
 ---
@@ -191,6 +192,16 @@ Referenz-Implementierung: `rssdev10/skyrc-mc-rs` (Rust, MIT)
   - `data[16–17]` = Ladepause (BE, min), `data[18–19]` = Entladepause (BE, min)
   - `data[22]` = Delta-Peak (mV), `data[23]` = Trickle-Strom (÷10), `data[24–25]` = Keep-Spannung (BE)
   - `data[27–28]` = Cutoff-Timer (BE, min), max. Betriebszeit danach
+
+---
+
+### Verbindung dauerhaft halten
+
+- **Foreground-Service** `Mc5000Service` (Typ `connectedDevice`) mit `PARTIAL_WAKE_LOCK`
+  hält die BLE-Verbindung auch im Standby/Doze.
+- **Auto-Reconnect:** letztes Gerät (MAC) wird persistiert; nach Abbruch/App-Start wird
+  automatisch neu verbunden (Backoff bis 30 s). Manuelles Trennen deaktiviert den Auto-Reconnect.
+- **Polling + Historie** laufen im Singleton-`Mc5000BleManager` (Application-Scope), nicht in der UI.
 
 ---
 

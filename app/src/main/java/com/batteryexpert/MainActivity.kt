@@ -29,7 +29,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.room.Room
 import com.batteryexpert.data.ApiKeyStore
-import com.batteryexpert.data.ble.Mc5000BleManager
 import com.batteryexpert.data.db.AppDatabase
 import com.batteryexpert.data.repository.AiRepository
 import com.batteryexpert.data.repository.BatteryRepository
@@ -79,7 +78,7 @@ class MainActivity : ComponentActivity() {
     private val exportImportRepo by lazy { ExportImportRepository(db.cellTypeDao(), db.batteryDao(), db.chargeProfileDao(), db.measurementDao(), db.testResultDao()) }
     private val testRepo by lazy { TestRepository(db.cellTypeDao(), db.batteryDao(), db.testResultDao()) }
 
-    private val bleManager by lazy { Mc5000BleManager(applicationContext) }
+    private val bleManager get() = (application as BatteryExpertApp).bleManager
     private val bleRepo by lazy { BleRepository(bleManager) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -113,7 +112,7 @@ fun MainApp(
 ) {
     val listViewModel: BatteryListViewModel = viewModel { BatteryListViewModel(batteryRepo) }
     val detailViewModel: BatteryDetailViewModel = viewModel { BatteryDetailViewModel(batteryRepo, measurementRepo) }
-    val monitorViewModel: MonitorViewModel = viewModel { MonitorViewModel(bleRepo) }
+    val monitorViewModel: MonitorViewModel = viewModel { MonitorViewModel(bleRepo, batteryRepo) }
     val settingsViewModel: SettingsViewModel = viewModel { SettingsViewModel(exportImportRepo, bleRepo, apiKeyStore) }
     val testViewModel: TestViewModel = viewModel { TestViewModel(testRepo, bleRepo) }
     val aiResearchViewModel: AiResearchViewModel = viewModel { AiResearchViewModel(aiRepo) }

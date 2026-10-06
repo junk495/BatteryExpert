@@ -4,12 +4,11 @@ import com.batteryexpert.data.ble.BleDevice
 import com.batteryexpert.data.ble.ConnectionState
 import com.batteryexpert.data.ble.Mc5000BleManager
 import com.batteryexpert.data.ble.ProtocolCodec
+import com.batteryexpert.data.ble.SlotHistory
 import com.batteryexpert.data.ble.SlotStatus
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 class BleRepository(
@@ -18,6 +17,8 @@ class BleRepository(
 ) {
     val connectionState: StateFlow<ConnectionState> = bleManager.connectionState
     val rawPacketLog: StateFlow<List<String>> = bleManager.rawPacketLog
+    val slotStatuses: StateFlow<List<SlotStatus>> = bleManager.slotStatuses
+    val slotHistories: StateFlow<Map<Int, SlotHistory>> = bleManager.slotHistories
 
     fun scanDevices(): Flow<List<BleDevice>> = bleManager.scanDevices()
 
@@ -34,23 +35,5 @@ class BleRepository(
     suspend fun startStop(action: Int) {
         val packet = protocolCodec.buildStartStop(action)
         bleManager.writePacket(packet)
-    }
-
-    fun pollAllSlots(intervalMs: Long = 1000L): Flow<List<SlotStatus>> = flow {
-        val slotBitmasks = listOf(1, 2, 4, 8)
-
-        while (true) {
-            if (connectionState.value == ConnectionState.CONNECTED) {
-                for (mask in slotBitmasks) {
-                    try {
-                        val request = protocolCodec.buildStatusRequest(mask)
-                        bleManager.writePacket(request)
-                        delay(150L)
-                    } catch (_: Exception) {
-                    }
-                }
-            }
-            delay(intervalMs)
-        }
     }
 }
