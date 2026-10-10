@@ -16,8 +16,8 @@ Android-App zur Verwaltung von Akku-Daten und zur direkten Steuerung des
 - **Zelltypen-Datenbank:** Seriendaten (Datenblatt) je Zelltyp verwalten – Hersteller, Modell,
   Chemie, Kapazität, Lade-/Entladeparameter, NiMH-Delta-Peak, … (Room/SQLite).
 - **Zellen-Bestand:** einzelne Zellen einem Zelltyp zuordnen (Herkunft, Status, Lagerort).
-- **Live-Monitoring:** Spannung, Strom, Kapazität, Zeit und Innenwiderstand der 4 Slots
-  in Echtzeit (inkl. Spannungs-/Stromverlauf als Diagramm).
+- **Live-Monitoring:** Spannung, Strom, Ladung, Kapazität, Zeit und Innenwiderstand der 4 Slots
+  in Echtzeit (inkl. Diagramm: Spannung/Strom links, Ladung rechts).
 - **Zell-Bewertung (Test-Tab):** Innenwiderstand prüfen + Kapazitäts-/SOH-Test
   (Schnell- oder genauer Test) → Ampel (ok/beobachten/aussortieren).
 - **Steuerung:** Lade-/Entladeparameter direkt an den MC5000 senden (`0x94` + `0x93`).
